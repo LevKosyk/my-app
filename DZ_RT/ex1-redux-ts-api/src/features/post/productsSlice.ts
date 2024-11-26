@@ -20,7 +20,7 @@ const initialState: ProductState = {
     items: [],
     status: 'idle',
     error: null,
-    product: {name: '', description: '', price: 0, category: '', id: 0},
+    product: { name: '', description: '', price: 0, category: '', id: 0 },
 };
 
 export const fetchProducts = createAsyncThunk('/products', async () => {
@@ -30,7 +30,7 @@ export const fetchProducts = createAsyncThunk('/products', async () => {
 
 
 export const createProduct = createAsyncThunk('/create', async (product: Product) => {
-    const response = await api.post('/create', product); 
+    const response = await api.post('/create', product);
     return response.data as Product;
 });
 
@@ -41,13 +41,27 @@ export const updateProduct = createAsyncThunk<Product, Product>('/updateProduct/
 
 export const deleteProduct = createAsyncThunk<number, number>('/delete/:id', async (id) => {
     await api.delete(`/delete/${id}`);
-    return id; 
+    return id;
 });
 
 export const getProductById = createAsyncThunk<Product, number>('/:id', async (id) => {
     const response = await api.get(`/${id}`);
     return response.data as Product;
 });
+
+export const getProductByCategory = createAsyncThunk(
+    "products/getByCategory",
+    async (category: string, { rejectWithValue }) => {
+        try {
+            const response = await api.get(`/category`, { params: { category } });
+            return response.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data || "Failed to fetch category products");
+        }
+    }
+);
+
+
 
 const productsSlice = createSlice({
     name: 'products',
@@ -111,6 +125,17 @@ const productsSlice = createSlice({
             .addCase(getProductById.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message || 'Failed to fetch product';
+            })
+            .addCase(getProductByCategory.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(getProductByCategory.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.items = action.payload;
+            })
+            .addCase(getProductByCategory.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message || 'Failed to fetch category products';
             });
     },
 });

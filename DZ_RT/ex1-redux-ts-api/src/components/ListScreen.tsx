@@ -1,29 +1,34 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Box, Flex, Spinner, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Button, Box, Flex, Spinner, Text } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store";
-import { fetchProducts, deleteProduct } from "../features/post/productsSlice";
+import { fetchProducts, deleteProduct, getProductByCategory } from "../features/post/productsSlice";
 import Navbar from "./Navbar";
-import CustomMenu from "./UI/custimMenu";
 
 const ProductsList: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
   const products = useSelector((state: RootState) => state.product.items);
   const status = useSelector((state: RootState) => state.product.status);
   const error = useSelector((state: RootState) => state.product.error);
+  const [category, setCategory] = useState("");
 
   const handleDelete = (id: number) => {
     console.log(`Delete product with id: ${id}`);
-    dispatch(deleteProduct(id))
+    dispatch(deleteProduct(id));
   };
 
-
   useEffect(() => {
-    if (status === "idle") {
+    if (category === "") {
       dispatch(fetchProducts());
+    } else {
+      dispatch(getProductByCategory(category));
     }
-  }, [dispatch, status]);
+  }, [dispatch, category]);
+
+  const handelChange = (category: string) => {
+    setCategory(category);
+  };
 
   if (status === "loading") {
     return (
@@ -33,14 +38,29 @@ const ProductsList: React.FC = () => {
     );
   }
 
-  if (error) return <h2>Error: {error}</h2>;
+  if (error) {
+    return (
+      <Box textAlign="center" py={6}>
+        <Text color="red.500">Error: {error}</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       <Navbar />
       <Box maxW="1200px" mx="auto" p={6}>
         <Flex justify="space-between" align="center" mb={6}>
-          <CustomMenu />
+          <select
+            name="category"
+            value={category}
+            onChange={(e) => handelChange(e.target.value)}
+          >
+            <option value="">All</option>
+            <option value="beauty">Beauty</option>
+            <option value="fragrances">Fragrances</option>
+            <option value="furniture">Furniture</option>
+          </select>
         </Flex>
         <Flex
           justify="space-between"
@@ -58,7 +78,7 @@ const ProductsList: React.FC = () => {
           <Text flex={1} textAlign="center">Action</Text>
         </Flex>
         <Box mt={4}>
-          {Array.isArray(products) && products.length > 0 ? (
+          {products.length > 0 ? (
             products.map((item) => (
               <Flex
                 key={item.id}
@@ -90,9 +110,11 @@ const ProductsList: React.FC = () => {
               </Flex>
             ))
           ) : (
-            <Flex justify="center" align="center" p={4}>
-              <Text>No products found.</Text>
-            </Flex>
+            <Box textAlign="center" py={4}>
+              <Text fontSize="lg" color="gray.500">
+                No products found in this category.
+              </Text>
+            </Box>
           )}
         </Box>
       </Box>
